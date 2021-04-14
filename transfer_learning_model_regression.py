@@ -77,7 +77,7 @@ def train_student(J,W0,v0,eta_w,eta_v,M,xtest,ytest,errorstep):
             testerror.append(test_error(xtest,ytest,W,v))
             Wlist.append(W.copy())
             vlist.append(v.copy())
-    return W,v,testerror,np.array(Wlist),np.array(vlist) #returns the final weights, and the evolution of error and weights during training
+    return W,v,testerror,np.array(Wlist),np.array(vlist) #returns the final weights and the evolution of error and weights during training
 
 def train_student_soft_transfer(J,W0,v0,W_old,v_old,beta_w,beta_v,eta_w,eta_v,M,xtest,ytest,errorstep):
     N=len(J)
