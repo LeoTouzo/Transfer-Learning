@@ -42,11 +42,10 @@ double error(double q[],double r[],double v[],double t,int K)
     return (asin(t/(1+t))+s1-2*s2)/M_PI;
 }
 
-void initQ_R(double qr[],double qi[],double r[],int K,double rho,double sigma0)
+void initQ(double qr[],double qi[],int K,double rho,double sigma0)
 {
     for (int k=0; k<K; k++)
     {
-        r[k]=0;
         qr[(k+1)*(k+2)/2-1]=rho*sigma0;
         qi[(k+1)*(k+2)/2-1]=(1-rho)*sigma0;
         for (int l=0; l<k; l++)
@@ -54,6 +53,14 @@ void initQ_R(double qr[],double qi[],double r[],int K,double rho,double sigma0)
             qr[k*(k+1)/2+l]=0;
             qi[k*(k+1)/2+l]=0;
         }
+    }
+}
+
+void initR(double r[],int K,double rho,double sigma0)
+{
+    for (int k=0; k<K; k++)
+    {
+        r[k]=0;
     }
 }
 
@@ -220,11 +227,10 @@ void compute_f(double fqr[],double fqi[],double fr[],double fv[],double q[],doub
     }
 }
 
-void AdamsBashforth(double qr[],double qi[],double r[],double v[],double t,int K,double rho,double aw,double av,int Tf,double dt,double dtpoints)
+void AdamsBashforth(double qr[],double qi[],double r[],double v[],double t,int K,double rho,double aw,double av,int Tf,double dt,double dtpoints,string errFileName,string qrFileName,string qiFileName,string rFileName,string vFileName)
 {
     int nsteps(Tf/dt),skipsteps(dtpoints/dt);
     double q[K*(K+1)/2],fqrprev[K*(K+1)/2],fqiprev[K*(K+1)/2],frprev[K],fvprev[K],fqrnew[K*(K+1)/2],fqinew[K*(K+1)/2],frnew[K],fvnew[K];
-    string errFileName("results/err1.txt"),qrFileName("results/qr1.txt"),qiFileName("results/qi1.txt"),rFileName("results/r1.txt"),vFileName("results/v1.txt");
     ofstream errFile(errFileName.c_str());
     ofstream qrFile(qrFileName.c_str());
     ofstream qiFile(qiFileName.c_str());
@@ -328,14 +334,41 @@ void AdamsBashforth(double qr[],double qi[],double r[],double v[],double t,int K
 
 int main()
 {
-    int const K(10),Tf(10000);
+    int const K(10),Tf(20000);
     int npoints(0);
     double rho(0.1),aw(0.5),av(0.5),sigma0(1),dt(0.1),dtpoints(10);
-    double qr[K*(K+1)/2],qi[K*(K+1)/2],q[K*(K+1)/2],r[K],v[K],t(0),fqr[K*(K+1)/2],fqi[K*(K+1)/2],fr[K*(K+1)/2],fv[K*(K+1)/2];
+    double qr[K*(K+1)/2],qi[K*(K+1)/2],q[K*(K+1)/2],r[K],v[K],t(0),qrt[K*(K+1)/2],qit[K*(K+1)/2];
+    string errFileName("results/err_rho01_av05_Tf"+to_string(Tf)+".txt"),qrFileName("results/qr_rho01_av05_Tf"+to_string(Tf)+".txt"),qiFileName("results/qi_rho01_av05_Tf"+to_string(Tf)+".txt"),rFileName("results/r_rho01_av05_Tf"+to_string(Tf)+".txt"),vFileName("results/v_rho01_av05_Tf"+to_string(Tf)+".txt");
     npoints=Tf/dtpoints+1;
     t=rho;
-    initQ_R(qr,qi,r,K,rho,sigma0);
+    initQ(qr,qi,K,rho,sigma0);
+    initR(r,K,rho,sigma0);
     initV(v,K,sigma0);
-    AdamsBashforth(qr,qi,r,v,t,K,rho,aw,av,Tf,dt,dtpoints);
+    AdamsBashforth(qr,qi,r,v,t,K,rho,aw,av,Tf,dt,dtpoints,errFileName,qrFileName,qiFileName,rFileName,vFileName);
+    for (int k=0; k<K; k++)
+    {
+        qrt[k]=qr[k];
+        qit[k]=qi[k];
+    }
+    initR(r,K,rho,sigma0);
+    errFileName="results/err_rho01_av05_Tf"+to_string(Tf)+"_twv.txt";
+    qrFileName="results/qr_rho01_av05_Tf"+to_string(Tf)+"_twv.txt";
+    qiFileName="results/qi_rho01_av05_Tf"+to_string(Tf)+"_twv.txt";
+    rFileName="results/r_rho01_av05_Tf"+to_string(Tf)+"_twv.txt";
+    vFileName="results/v_rho01_av05_Tf"+to_string(Tf)+"_twv.txt";
+    AdamsBashforth(qr,qi,r,v,t,K,rho,aw,av,Tf,dt,dtpoints,errFileName,qrFileName,qiFileName,rFileName,vFileName);
+    for (int k=0; k<K; k++)
+    {
+        qr[k]=qrt[k];
+        qi[k]=qit[k];
+    }
+    initR(r,K,rho,sigma0);
+    initV(v,K,sigma0);
+    errFileName="results/err_rho01_av05_Tf"+to_string(Tf)+"_tw.txt";
+    qrFileName="results/qr_rho01_av05_Tf"+to_string(Tf)+"_tw.txt";
+    qiFileName="results/qi_rho01_av05_Tf"+to_string(Tf)+"_tw.txt";
+    rFileName="results/r_rho01_av05_Tf"+to_string(Tf)+"_tw.txt";
+    vFileName="results/v_rho01_av05_Tf"+to_string(Tf)+"_tw.txt";
+    AdamsBashforth(qr,qi,r,v,t,K,rho,aw,av,Tf,dt,dtpoints,errFileName,qrFileName,qiFileName,rFileName,vFileName);
     return 0;
 }
