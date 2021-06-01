@@ -53,21 +53,19 @@ double error(double q[],double r[],double v[],double t[],double h[],int K,int A)
     return (s1-2*s2+s3)/M_PI;
 }
 
-void initQ(double qr[],double qi[],int K,double rho,double sigma0)
+void initQ(double q[],int K,double diagterm)
 {
     for (int k=0; k<K; k++)
     {
-        qr[(k+1)*(k+2)/2-1]=rho*sigma0;
-        qi[(k+1)*(k+2)/2-1]=(1-rho)*sigma0;
+        q[(k+1)*(k+2)/2-1]=diagterm;
         for (int l=0; l<k; l++)
         {
-            qr[k*(k+1)/2+l]=0;
-            qi[k*(k+1)/2+l]=0;
+            q[k*(k+1)/2+l]=0;
         }
     }
 }
 
-void initR(double r[],int K,int A,double rho,double sigma0)
+void initR(double r[],int K,int A)
 {
     for (int k=0; k<K*A; k++)
     {
@@ -121,6 +119,15 @@ void initV(double v[],int K,double sigma0)
             v[k]=v[k]*sigma0;
         }
     }
+}
+
+void perm(double w[],double v[],int K)
+{
+    for (int k=0;k<K-1;k++)
+    {
+        w[k]=v[k+1];
+    }
+    w[K-1]=v[0];
 }
 
 void compute_f(double fqr[],double fqi[],double fr[],double fv[],double q[],double qr[],double qi[],double r[],double v[],int K,double t[],double h[],int A,double rho,double aw,double av)
@@ -525,21 +532,92 @@ void AdamsBashforth_t1(const int Tpre[3],double qrt[][3],double qit[][3],double 
     }
 }
 
-int main()
+void main2(int K,int A,double rho)
 {
     int Tf(10000);
-    int K(3),A(3);
-    double rho(0.1),aw(1),av(1),sigma0(1),dt(0.1),dtpoints(10);
-    double qr[K*(K+1)/2]={0.10167589, 0.00325954, 0.11671978, 0.00081399, 0.00292362, 0.11548411};
-    double qi[K*(K+1)/2]={8.86334676e-01, -4.33296290e-04,  8.61724268e-01, -7.38692673e-03, -1.50315355e-02,  9.24392065e-01};
-    double r[K*A]={-0.00060384, 0.01706711, -0.00070461, -0.00189088, -0.00519145, 0.00919399, 0.00207166, -0.01229755, -0.00724259};
-    double v[K]={0.44808509, 0.56382914, 0.42514543};
-    double t[A*(A+1)/2]={0.0947562, -0.00681219,  0.09496094, -0.00891996, -0.01067338, 0.0899326};
-    double h[A]={-1.0247743, 1.67329327, 0.18181674};
-    string errFileName("results/err_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_1.txt");
-    string qrFileName("results/qr_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_1.txt");
-    string qiFileName("results/qi_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_1.txt");
-    string rFileName("results/r_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_1.txt");
-    string vFileName("results/v_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_1.txt");
-    AdamsBashforth(qr,qi,r,v,t,h,K,A,rho,aw,av,Tf,dt,dtpoints,errFileName,qrFileName,qiFileName,rFileName,vFileName);
+    //int K(3),A(3);
+    double sigma0(1),aw(1),av(1),dt(0.1),dtpoints(10);
+    double qr[K*(K+1)/2];//={0.50039316,  0.01088364,  0.49960063, -0.03300625,  0.02103842, 0.45028161};//={0.46263299};//={0.10167589, 0.00325954, 0.11671978, 0.00081399, 0.00292362, 0.11548411};
+    double qi[K*(K+1)/2];//={0.51315949, -0.00210669,  0.48445879, -0.013012  ,  0.00280359, 0.47636638};//={0.52022594};//={8.86334676e-01, -4.33296290e-04,  8.61724268e-01, -7.38692673e-03, -1.50315355e-02,  9.24392065e-01};
+    double r[K*A];//={0.01555814,  0.00771486, 0.02811012,  0.03416652,-0.02251075, -0.05969664};//={-0.0005068 , -0.07583292,  0.04702699};//={-0.000060384,  0.0001706711, -0.00070461, -0.000189088, -0.000519145,  0.000919399, 0.0000207166, -0.0001229755, -0.0000724259};
+    double v[K];//={-0.72379809};//={0.19253684, 0.77432526, 0.71316453};//={-2.08101922, -0.3100416 ,  0.79853657};;//={-0.20267418,  1.10420871,  0.77422588};//{0.44808509, 0.56382914, 0.42514543};
+    double t[A*(A+1)/2];//={0.52173389, 0.00647602, 0.45166125};//={0.4453226 ,  0.05280237,  0.49768827, -0.08251821, -0.013367  ,0.54396388};//={0.0947562 , -0.00681219,  0.09496094, -0.00891996, -0.01067338, 0.0899326};
+    double h1[A],h2[A];//={-1.17965869,  0.11397837,  0.42285759}//={0.88276946, 1.01772186, 1.30290494};//h0[A],h1[A]={0.67829355, 1.315615, 0.300041},h2[A]={0.88725544, 1.19158723, 0.51130675};
+    double qrt[K*(K+1)/2],qit[K*(K+1)/2];
+    string errFileName("results/err_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+".txt");
+    string qrFileName("results/qr_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+".txt");
+    string qiFileName("results/qi_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+".txt");
+    string rFileName("results/r_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+".txt");
+    string vFileName("results/v_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+".txt");
+    initQ(qr,K,rho*sigma0);
+    initQ(qi,K,(1-rho)*sigma0);
+    initQ(t,A,rho);
+    initR(r,K,A);
+    initV(v,K,sigma0);
+    initV(h1,A,1);
+    initV(h2,A,1);
+    AdamsBashforth(qr,qi,r,v,t,h1,K,A,rho,aw,av,Tf,dt,dtpoints,errFileName,qrFileName,qiFileName,rFileName,vFileName);
+    for (int k=0;k<K*(K+1)/2;k++)
+    {
+        qrt[k]=qr[k];
+        qit[k]=qi[k];
+    }
+    errFileName="results/err_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_twv.txt";
+    qrFileName="results/qr_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_twv.txt";
+    qiFileName="results/qi_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_twv.txt";
+    rFileName="results/r_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_twv.txt";
+    vFileName="results/v_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_twv.txt";
+    initR(r,K,A);
+    AdamsBashforth(qr,qi,r,v,t,h2,K,A,rho,aw,av,Tf,dt,dtpoints,errFileName,qrFileName,qiFileName,rFileName,vFileName);
+    errFileName="results/err_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_tw.txt";
+    qrFileName="results/qr_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_tw.txt";
+    qiFileName="results/qi_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_tw.txt";
+    rFileName="results/r_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_tw.txt";
+    vFileName="results/v_A"+to_string(A)+"_K"+to_string(K)+"_rho"+to_string(rho)+"_aw"+to_string(aw)+"_av"+to_string(av)+"_sigma0"+to_string(sigma0)+"_Tf"+to_string(Tf)+"_tw.txt";
+    for (int k=0;k<K*(K+1)/2;k++)
+    {
+        qr[k]=qrt[k];
+        qi[k]=qit[k];
+    }
+    initR(r,K,A);
+    initV(v,K,sigma0);
+    AdamsBashforth(qr,qi,r,v,t,h2,K,A,rho,aw,av,Tf,dt,dtpoints,errFileName,qrFileName,qiFileName,rFileName,vFileName);
+}
+
+int main(int argc,char *argv[])
+{
+    int A(3);
+    if(argc==1)
+    {
+        A=3;
+    }
+    else
+    {
+        A = atoi(argv[1]);
+    }
+    //double aw[7]={0.1,0.2,0.5,1,2,5};
+    //double rho[5]={0.1,0.25,0.5,0.75,1};
+    //double av[7]={0.02,0.05,0.1,0.2,0.5,1,2};
+    int K[5]={1,2,3,5,10};
+    for (int i=0;i<1;i++)
+    {
+        main2(K[i],A,0.1);
+        main2(K[i],A,0.5);
+    }
+    //double v[10][3]={{-1.53221889,  1.13410588,  0.3884811},{-0.63593858, -0.57983309,  0.8632137},
+                    //{-1.07025762,  1.8069262 ,  0.65021007},{0.28890048, 1.5267316 , 1.52741228},
+                    //{-0.58388372,  0.47888286,  0.09093863},{0.2358605 , -0.20459371,  0.76424595},
+                    //{0.12548513, 1.36244078, 2.06754005},{0.62415929,  0.33575737, -1.15723042},
+                    //{0.88276946, 1.01772186, 1.30290494},{-0.69126245, -1.63396207,  0.37421204}};
+    //double h2[10][3]={{1.58866146, 0.43675005, 0.58254912},{-0.07455767,  0.27028633, -0.22681131},
+                    //{0.55474851,  1.88143563, -0.24043112},{0.58255734, -0.90889123,  1.25104802},
+                    //{-0.2241376 ,  0.64409892,  0.23844966},{0.75296138, 0.70715091, 0.44594371},
+                    //{-0.73214019,  0.21978161, -0.89188138},{2.65527279,  0.71451529, -1.77304739},
+                    //{0.19253684, 0.77432526, 0.71316453},{-0.33309497,  1.32210356,  1.13402017}};
+    //for (int k=0;k<10;k++)
+    //{
+        //main2(v[k],0.1,k);
+        //main2(v[k],0.5,k);
+    //}
+    return 0;
 }
